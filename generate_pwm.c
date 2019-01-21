@@ -64,7 +64,7 @@ generate_pwm(void)
     GPIOPinTypePWM(DRV8323RS_PWMA_GPIO_PORT, DRV8323RS_PWMA_GPIO_PIN);
 
     GPIOPinConfigure(DRV8323RS_PWMB_PIN_CONFIG);
-    GPIOPinTypePWM(DRV8323RS_PWMB_GPIO_PORT, DRV8323RS_PWMB_GPIO_PIN);
+    GPIOPinTypeTimer(DRV8323RS_PWMB_GPIO_PORT, DRV8323RS_PWMB_GPIO_PIN);
 
     GPIOPinConfigure(DRV8323RS_PWMC_PIN_CONFIG);
     GPIOPinTypePWM(DRV8323RS_PWMC_GPIO_PORT, DRV8323RS_PWMC_GPIO_PIN);
@@ -74,12 +74,16 @@ generate_pwm(void)
     //PWM_GEN_3 Covers M1PWM6 and M1PWM7 See page 207 4/11/13 DriverLib doc
     PWMGenConfigure(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GEN, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
 
-    PWMGenConfigure(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GEN, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+    TimerConfigure(DRV8323RS_PWMB_BASE,(TIMER_CFG_SPLIT_PAIR|TIMER_CFG_B_PWM));
 
     PWMGenConfigure(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_GEN, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
 
     //Set the Period (expressed in clock ticks)
     PWMGenPeriodSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN, 400);
+
+    TimerLoadSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 1000 -1);
+    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 250); // PWM
+    TimerEnable(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER);
 
     PWMGenPeriodSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_GEN, 400);
 
@@ -89,37 +93,57 @@ generate_pwm(void)
     PWMPulseWidthSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT,80);
 
     // Enable the PWM generator
-    PWMGenEnable(PWM1_BASE, PWM_GEN_3);
+    PWMGenEnable(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN);
 
     PWMGenEnable(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_GEN);
 
     // Turn on the Output pins
-    PWMOutputState(PWM1_BASE, PWM_OUT_6_BIT, true);
+    PWMOutputState(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT_BIT, true);
 
     PWMOutputState(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT_BIT, true);
 
-//    //Fade
-//    bool fadeUp = true;
-//    unsigned long increment = 10;
-//    unsigned long pwmNow = 160;
-//    while(1)
-//    {
-////        delayMS(20);
-////        if (fadeUp) {
-////            pwmNow += increment;
-////            if (pwmNow >= 320) { fadeUp = false; }
-////        }
-////        else {
-////            pwmNow -= increment;
-////            if (pwmNow <= 10) { fadeUp = true; }
-////        }
-////
-////        PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5,pwmNow);
-////        PWMPulseWidthSet(PWM1_BASE, PWM_OUT_6,pwmNow);
-////        PWMPulseWidthSet(PWM1_BASE, PWM_OUT_7,pwmNow);
-//
-//       PWMPulseWidthSet(PWM1_BASE, PWM_OUT_6,pwmNow);
-//       PWMPulseWidthSet(PWM1_BASE, PWM_OUT_7,pwmNow);
-//    }
+};
 
+int INLPinConfig(void){
+    //Set the clock
+   SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC |   SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+   // Enable the peripherals used by this program.
+    SysCtlPeripheralEnable(DRV8323RS_INLA_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_INLB_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_INLC_PERIPH);
+
+    GPIOPinTypeGPIOOutput(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN);
+    GPIOPinTypeGPIOOutput(DRV8323RS_INLB_PORT,DRV8323RS_INLB_PIN);
+    GPIOPinTypeGPIOOutput(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN);
+
+    GPIOPinConfigure(GPIO_PC3_);
+    GPIO_PC5_M0PWM7
+    GPIO_PIN_3
 }
+
+int HallSensorConfig(void){
+    // Enable the GPIOA peripheral
+    SysCtlPeripheralEnable(DRV8323RS_HALLA_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_HALLB_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_HALLC_PERIPH);
+
+    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOA))
+        {
+        }
+
+    GPIOIntRegister(DRV8323RS_HALLA_PORT, HALLIntHandler);
+    GPIOIntRegister(DRV8323RS_HALLB_PORT, HALLIntHandler);
+    GPIOIntRegister(DRV8323RS_HALLC_PORT, HALLIntHandler);
+
+    GPIOPinTypeGPIOInput(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
+    GPIOPinTypeGPIOInput(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
+    GPIOPinTypeGPIOInput(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+
+    GPIOIntTypeSet(DRV8323RS_HALLA_PORT, GPIO_PIN_2, GPIO_RISING_EDGE);
+}
+
+void HALLIntHandler(void){
+    Read
+}
+
