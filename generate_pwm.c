@@ -33,8 +33,9 @@ void delayMS(int ms) {
     SysCtlDelay( (SysCtlClockGet()/(3*1000))*ms ) ;
 }
 
-int
-generate_pwm(void)
+void HALLIntHandler(void);
+
+int generate_pwm(void)
 {
     //Set the clock
    SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC |   SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
@@ -117,9 +118,6 @@ int INLPinConfig(void){
     GPIOPinTypeGPIOOutput(DRV8323RS_INLB_PORT,DRV8323RS_INLB_PIN);
     GPIOPinTypeGPIOOutput(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN);
 
-    GPIOPinConfigure(GPIO_PC3_);
-    GPIO_PC5_M0PWM7
-    GPIO_PIN_3
 }
 
 int HallSensorConfig(void){
