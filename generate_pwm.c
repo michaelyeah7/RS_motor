@@ -43,10 +43,13 @@ generate_pwm(void)
    SysCtlPWMClockSet(SYSCTL_PWMDIV_1);
 
    // Enable the peripherals used by this program.
-    SysCtlPeripheralEnable(DRV8323RS_INHA_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_PWMA_GPIO_PERIPH);
     SysCtlPeripheralEnable(DRV8323RS_PWMA_PERIPH);  //The Tiva Launchpad has two modules (0 and 1). Module 1 covers the LED pins
 
-    SysCtlPeripheralEnable(DRV8323RS_INHC_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_PWMB_GPIO_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_PWMB_PERIPH);
+
+    SysCtlPeripheralEnable(DRV8323RS_PWMC_GPIO_PERIPH);
     SysCtlPeripheralEnable(DRV8323RS_PWMC_PERIPH);
 
 //    //Configure PF1,PF2,PF3 Pins as PWM
@@ -58,7 +61,10 @@ generate_pwm(void)
 
     //Configure PF2,PB3,PC5 Pins as PWMA,B,C
     GPIOPinConfigure(DRV8323RS_PWMA_PIN_CONFIG);
-    GPIOPinTypePWM(DRV8323RS_PWMA_GPIO_PORT, GPIO_PIN_2);
+    GPIOPinTypePWM(DRV8323RS_PWMA_GPIO_PORT, DRV8323RS_PWMA_GPIO_PIN);
+
+    GPIOPinConfigure(DRV8323RS_PWMB_PIN_CONFIG);
+    GPIOPinTypePWM(DRV8323RS_PWMB_GPIO_PORT, DRV8323RS_PWMB_GPIO_PIN);
 
     GPIOPinConfigure(DRV8323RS_PWMC_PIN_CONFIG);
     GPIOPinTypePWM(DRV8323RS_PWMC_GPIO_PORT, DRV8323RS_PWMC_GPIO_PIN);
@@ -68,15 +74,17 @@ generate_pwm(void)
     //PWM_GEN_3 Covers M1PWM6 and M1PWM7 See page 207 4/11/13 DriverLib doc
     PWMGenConfigure(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GEN, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
 
+    PWMGenConfigure(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GEN, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
+
     PWMGenConfigure(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_GEN, PWM_GEN_MODE_DOWN | PWM_GEN_MODE_NO_SYNC);
 
     //Set the Period (expressed in clock ticks)
-    PWMGenPeriodSet(PWM1_BASE, PWM_GEN_3, 400);
+    PWMGenPeriodSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN, 400);
 
     PWMGenPeriodSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_GEN, 400);
 
     //Set PWM duty-50% (Period /2)
-    PWMPulseWidthSet(PWM1_BASE, PWM_OUT_6,80);
+    PWMPulseWidthSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT,80);
 
     PWMPulseWidthSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT,80);
 
