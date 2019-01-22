@@ -28,12 +28,27 @@
 #include "driverlib/gpio.h"
 #include "driverlib/pwm.h"
 #include "drv8323rs.h"
+//#include "drv8323rs.c"
+int HALLA_data;
+int HALLB_data;
+int HALLC_data;
+uint16_t read_data;
+int flag = 0;
 
 void delayMS(int ms) {
     SysCtlDelay( (SysCtlClockGet()/(3*1000))*ms ) ;
 }
 
 void HALLIntHandler(void);
+
+void ThreeXModeConfig(void){
+
+//    SysCtlPeripheralEnable(DRV8323RS_ENABLE_PERIPH);
+//    GPIOPinTypeGPIOOutput(DRV8323RS_ENABLE_PORT, DRV8323RS_ENABLE_PIN);
+
+    SPIWriteDRV8323(0x02, 0b0000100000);
+    read_data=SPIReadDRV8323(0x02);
+}
 
 int generate_pwm(void)
 {
@@ -83,15 +98,15 @@ int generate_pwm(void)
     PWMGenPeriodSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN, 400);
 
     TimerLoadSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 1000 -1);
-    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 250); // PWM
+    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500); // PWM
     TimerEnable(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER);
 
     PWMGenPeriodSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_GEN, 400);
 
     //Set PWM duty-50% (Period /2)
-    PWMPulseWidthSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT,80);
+    PWMPulseWidthSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT,200);
 
-    PWMPulseWidthSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT,80);
+    PWMPulseWidthSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT,200);
 
     // Enable the PWM generator
     PWMGenEnable(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN);
@@ -121,22 +136,24 @@ int INLPinConfig(void){
 }
 
 int HallSensorConfig(void){
-    // Enable the GPIOA peripheral
-    SysCtlPeripheralEnable(DRV8323RS_HALLA_PERIPH);
-    SysCtlPeripheralEnable(DRV8323RS_HALLB_PERIPH);
-    SysCtlPeripheralEnable(DRV8323RS_HALLC_PERIPH);
-
-    while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOA))
-        {
-        }
 
     GPIOIntRegister(DRV8323RS_HALLA_PORT, HALLIntHandler);
     GPIOIntRegister(DRV8323RS_HALLB_PORT, HALLIntHandler);
     GPIOIntRegister(DRV8323RS_HALLC_PORT, HALLIntHandler);
 
+    // Enable the GPIOA peripheral
+    SysCtlPeripheralEnable(DRV8323RS_HALLA_PERIPH);
+    while(!SysCtlPeripheralReady(DRV8323RS_HALLA_PERIPH)) ;
     GPIOPinTypeGPIOInput(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
+
+    SysCtlPeripheralEnable(DRV8323RS_HALLB_PERIPH);
+    while(!SysCtlPeripheralReady(DRV8323RS_HALLB_PERIPH)) ;
     GPIOPinTypeGPIOInput(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
+
+    SysCtlPeripheralEnable(DRV8323RS_HALLC_PERIPH);
+    while(!SysCtlPeripheralReady(DRV8323RS_HALLC_PERIPH));
     GPIOPinTypeGPIOInput(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+
 
     GPIOIntTypeSet(DRV8323RS_HALLA_PORT, GPIO_PIN_2, GPIO_BOTH_EDGES);
     GPIOIntTypeSet(DRV8323RS_HALLB_PORT, GPIO_PIN_0, GPIO_BOTH_EDGES);
@@ -146,12 +163,17 @@ int HallSensorConfig(void){
     GPIOIntEnable(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
     GPIOIntEnable(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
 
+    flag=IntMasterEnable();
+
 }
 
 void HALLIntHandler(void){
-    int HALLA_data = GPIOPinRead(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
-    int HALLB_data = GPIOPinRead(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
-    int HALLC_data = GPIOPinRead(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+    HALLA_data = GPIOPinRead(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
+    HALLB_data = GPIOPinRead(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
+    HALLC_data = GPIOPinRead(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+
+//    print()
+
 
     //commutate(HALLA_data,HALLB_data,HALLC_data);
 }

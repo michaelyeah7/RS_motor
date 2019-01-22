@@ -28,16 +28,21 @@
 #include "driverlib/gpio.h"
 #include "driverlib/pwm.h"
 #include "drv8323rs.h"
+//#include "drv8323rs.c"
 //#include "generate_pwm.c"
 
 
-int
-main(void)
+int main(void)
 {
-//    uint16_t data ;
-//    InitDRV8323RS();
-//    SPIWriteDRV8323(0x02, 0b0000000001000000);
-//    data=SPIReadDRV8323(0x02);
- generate_pwm();
+    //printf("got here1");
+    InitDRV8323RS();
+    //printf("got here");
+    ThreeXModeConfig();
+
+    HallSensorConfig();
+    INLPinConfig();
+    generate_pwm();
+
+
 
 }
