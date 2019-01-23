@@ -29,9 +29,9 @@
 #include "driverlib/pwm.h"
 #include "drv8323rs.h"
 
-//int HALLA_data;
-//int HALLB_data;
-//int HALLC_data;
+int HALLA_data;
+int HALLB_data;
+int HALLC_data;
 uint16_t read_data;
 
 void delayMS(int ms) {
@@ -135,18 +135,18 @@ int INLPinConfig(void){
 
 }
 
-void commutate(int HALLA_data,int HALLB_data,int HALLC_data){
-    if((HALLA_data>0) && (HALLB_data==0) && (HALLA_data==0)){
+void commutate(){
+    if((HALLA_data>0) && (HALLB_data==0) && (HALLC_data==0)){
         //100 +B -A
         GPIOPinWrite(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN,DRV8323RS_INLA_PIN);
         GPIOPinWrite(DRV8323RS_INLB_PORT,DRV8323RS_INLB_PIN,DRV8323RS_INLB_PIN);
         GPIOPinWrite(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN,0);
 
         //PWM and GND
-        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 0);
+        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 2);
         TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500);
     }
-    else if((HALLA_data>0) && (HALLB_data>0) && (HALLA_data==0)){
+    else if((HALLA_data>0) && (HALLB_data>0) && (HALLC_data==0)){
         //110 +C -A
         //Enable calls
         GPIOPinWrite(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN,DRV8323RS_INLA_PIN);
@@ -154,10 +154,10 @@ void commutate(int HALLA_data,int HALLB_data,int HALLC_data){
         GPIOPinWrite(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN,DRV8323RS_INLC_PIN);
 
         //PWM and GND
-        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 0);
+        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 2);
         PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_GPIO_PIN, 200);
     }
-    else if((HALLA_data==0) && (HALLB_data>0) && (HALLA_data==0)){
+    else if((HALLA_data==0) && (HALLB_data>0) && (HALLC_data==0)){
         //010 +C -B
         //Enable calls
         GPIOPinWrite(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN,0);
@@ -168,7 +168,7 @@ void commutate(int HALLA_data,int HALLB_data,int HALLC_data){
         TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 0);
         PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_GPIO_PIN, 200);
     }
-    else if((HALLA_data==0) && (HALLB_data>0) && (HALLA_data>0)){
+    else if((HALLA_data==0) && (HALLB_data>0) && (HALLC_data>0)){
         //011 +A -B
         //Enable calls
         GPIOPinWrite(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN,DRV8323RS_INLA_PIN);
@@ -180,7 +180,7 @@ void commutate(int HALLA_data,int HALLB_data,int HALLC_data){
         TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 0);
 
     }
-    else if((HALLA_data==0) && (HALLB_data>0) && (HALLA_data>0)){
+    else if((HALLA_data==0) && (HALLB_data==0) && (HALLC_data>0)){
         //001 +A -C
         //Enable calls
         GPIOPinWrite(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN,DRV8323RS_INLA_PIN);
@@ -189,10 +189,10 @@ void commutate(int HALLA_data,int HALLB_data,int HALLC_data){
 
         //PWM and GND
         PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GPIO_PIN, 200);
-        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GPIO_PIN, 0);
+        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GPIO_PIN, 2);
 
     }
-    else if((HALLA_data==0) && (HALLB_data>0) && (HALLA_data>0)){
+    else if((HALLA_data>0) && (HALLB_data==0) && (HALLC_data>0)){
         //101 +B -C
         //Enable calls
         GPIOPinWrite(DRV8323RS_INLA_PORT,DRV8323RS_INLA_PIN,0);
@@ -201,18 +201,17 @@ void commutate(int HALLA_data,int HALLB_data,int HALLC_data){
 
         //PWM and GND
         TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500);
-        PWMPulseWidthSet(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GPIO_PIN, 0);
+        PWMPulseWidthSet(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GPIO_PIN, 2);
 
     }
-    return 0;
 }
 
 
 void HALLIntHandler(void){
-    int HALLA_data = GPIOPinRead(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
-    int HALLB_data = GPIOPinRead(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
-    int HALLC_data = GPIOPinRead(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
-    commutate(HALLA_data,HALLB_data,HALLC_data);
+    HALLA_data = GPIOPinRead(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
+    HALLB_data = GPIOPinRead(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
+    HALLC_data = GPIOPinRead(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+    commutate();
 }
 
 int HallSensorConfig(void){
@@ -248,15 +247,17 @@ int HallSensorConfig(void){
 
 int main(void)
 {
+    IntMasterEnable();
     InitDRV8323RS();
     ThreeXModeConfig();
     pwm_config();
     HallSensorConfig();
     INLPinConfig();
-    IntMasterEnable();
+
 
     bool flag=false;
     while(1){
+
 //    if(flag)
 //    {
 //        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500);
