@@ -94,16 +94,16 @@ int pwm_config(void)
     //Set the Period (expressed in clock ticks)
     PWMGenPeriodSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN, 400);
 
-    TimerLoadSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 1000 -1);
-    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500); // PWM
+    TimerLoadSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 400 -1);
+    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 398); // PWM
     TimerEnable(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER);
 
     PWMGenPeriodSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_GEN, 400);
 
     //Set PWM duty-50% (Period /2)
-    PWMPulseWidthSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT,200);
+    PWMPulseWidthSet(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT,2);
 
-    PWMPulseWidthSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT,200);
+    PWMPulseWidthSet(DRV8323RS_PWMC_BASE, DRV8323RS_PWMC_OUT,2);
 
     // Enable the PWM generator
     PWMGenEnable(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN);
@@ -134,6 +134,15 @@ int INLPinConfig(void){
     GPIOPinTypeGPIOOutput(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN);
 
 }
+//void pwma(int dutycircle){
+//    PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, dutycircle);
+//    PWMGenEnable(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN);
+//    PWMOutputState(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT_BIT, true);
+//}
+//void pwmb(int dutycircle){
+//    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 200); // PWM
+//    TimerEnable(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER);
+//}
 
 void commutate(){
     if((HALLA_data>0) && (HALLB_data==0) && (HALLC_data==0)){
@@ -144,7 +153,7 @@ void commutate(){
 
         //PWM and GND
         PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 2);
-        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500);
+        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 360);
     }
     else if((HALLA_data>0) && (HALLB_data>0) && (HALLC_data==0)){
         //110 +C -A
@@ -155,7 +164,7 @@ void commutate(){
 
         //PWM and GND
         PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 2);
-        PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_GPIO_PIN, 200);
+        PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_OUT, 40);
     }
     else if((HALLA_data==0) && (HALLB_data>0) && (HALLC_data==0)){
         //010 +C -B
@@ -165,8 +174,8 @@ void commutate(){
         GPIOPinWrite(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN,DRV8323RS_INLC_PIN);
 
         //PWM and GND
-        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 0);
-        PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_GPIO_PIN, 200);
+        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 398);
+        PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_OUT, 40);
     }
     else if((HALLA_data==0) && (HALLB_data>0) && (HALLC_data>0)){
         //011 +A -B
@@ -176,8 +185,8 @@ void commutate(){
         GPIOPinWrite(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN,0);
 
         //PWM and GND
-        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GPIO_PIN, 200);
-        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 0);
+        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 40);
+        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 398);
 
     }
     else if((HALLA_data==0) && (HALLB_data==0) && (HALLC_data>0)){
@@ -188,8 +197,8 @@ void commutate(){
         GPIOPinWrite(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN,DRV8323RS_INLC_PIN);
 
         //PWM and GND
-        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GPIO_PIN, 200);
-        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_GPIO_PIN, 2);
+        PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, 40);
+        PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_OUT, 2);
 
     }
     else if((HALLA_data>0) && (HALLB_data==0) && (HALLC_data>0)){
@@ -200,17 +209,21 @@ void commutate(){
         GPIOPinWrite(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN,DRV8323RS_INLC_PIN);
 
         //PWM and GND
-        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500);
-        PWMPulseWidthSet(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GPIO_PIN, 2);
+        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 360);
+        PWMPulseWidthSet(DRV8323RS_PWMC_BASE,DRV8323RS_PWMC_OUT, 2);
 
     }
 }
 
 
 void HALLIntHandler(void){
+    GPIOIntClear(DRV8323RS_HALLA_PORT,GPIO_PIN_2);
+    GPIOIntClear(DRV8323RS_HALLB_PORT,GPIO_PIN_0);
+    GPIOIntClear(DRV8323RS_HALLC_PORT,GPIO_PIN_4);
     HALLA_data = GPIOPinRead(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
     HALLB_data = GPIOPinRead(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
     HALLC_data = GPIOPinRead(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+
     commutate();
 }
 
