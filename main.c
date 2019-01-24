@@ -16,7 +16,6 @@
 #
 #################################################*/
 
-#include "driverlib/pin_map.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include "inc/hw_gpio.h"
@@ -26,12 +25,16 @@
 #include "driverlib/pin_map.h"
 #include "driverlib/gpio.h"
 #include "driverlib/pwm.h"
+
+/*include for motor driver board*/
 #include "drv8323rs.h"
 
-
+/*includes for uart comm*/
 #include <utils/uartstdio.h>
 #include <driverlib/uart.h>
 
+/*include for adc*/
+#include "driverlib/adc.h"
 
 int HALLA_data;
 int HALLB_data;
@@ -87,6 +90,7 @@ void ThreeXModeConfig(void){
 
     SPIWriteDRV8323(DRV8323RS_DRIVER_CONTROL_REG, 0b0000100000);
     read_data=SPIReadDRV8323(DRV8323RS_DRIVER_CONTROL_REG);
+    UARTprintf(read_data);
 }
 
 int pwm_config(void)
@@ -298,7 +302,27 @@ int HallSensorConfig(void){
     GPIOIntEnable(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
 }
 
+void config_isense(void){
+    SysCtlPeripheralEnable(DRV8323RS_ISENSE_ADC_PERIPH);
+    GPIOPinTypeADC(DRV8323RS_ISENSEA_GPIO_PORT, DRV8323RS_ISENSEA_GPIO_PIN);
+    GPIOPinTypeADC(DRV8323RS_ISENSEB_GPIO_PORT, DRV8323RS_ISENSEB_GPIO_PIN);
+    GPIOPinTypeADC(DRV8323RS_ISENSEC_GPIO_PORT, DRV8323RS_ISENSEC_GPIO_PIN);
 
+    ADCSequenceConfigure(DRV8323RS_ISENSE_ADC_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
+    ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
+    ADCSequenceEnable(ADC0_BASE, 3);
+    ADCIntClear(ADC0_BASE, 3);
+}
+
+void adc_read_isense(void){
+    uint32_t pui32ADC0Value[1];
+    ADCProcessorTrigger(ADC0_BASE, 3);
+    while(!ADCIntStatus(ADC0_BASE, 3, false))
+            {
+            }
+    ADCIntClear(ADC0_BASE, 3);
+    ADCSequenceDataGet(ADC0_BASE, 3, pui32ADC0Value);
+}
 
 int main(void)
 {
