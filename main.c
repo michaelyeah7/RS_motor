@@ -309,12 +309,13 @@ void config_isense(void){
     GPIOPinTypeADC(DRV8323RS_ISENSEC_GPIO_PORT, DRV8323RS_ISENSEC_GPIO_PIN);
 
     ADCSequenceConfigure(DRV8323RS_ISENSE_ADC_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
-    ADCSequenceStepConfigure(ADC0_BASE, 3, 0, ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
+    ADCSequenceStepConfigure(ADC0_BASE, 3, 0, DRV8323RS_ISENSEA_ADC_CTL_CH | DRV8323RS_ISENSEB_ADC_CTL_CH  | DRV8323RS_ISENSEC_ADC_CTL_CH );
     ADCSequenceEnable(ADC0_BASE, 3);
     ADCIntClear(ADC0_BASE, 3);
 }
 
 void adc_read_isense(void){
+    /*figure out which sample gives us 3 seconds of 15000*/
     uint32_t pui32ADC0Value[1];
     ADCProcessorTrigger(ADC0_BASE, 3);
     while(!ADCIntStatus(ADC0_BASE, 3, false))
