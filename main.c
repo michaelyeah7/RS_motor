@@ -308,25 +308,11 @@ int main(void)
     pwm_config();
     HallSensorConfig();
     INLPinConfig();
-
+    InitConsole();
 
     bool flag=false;
     while(1){
-
-//    if(flag)
-//    {
-//        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 500);
-//        PWMPulseWidthSet(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GPIO_PIN, 0);
-//        flag=false;
-//        delayMS(500);
-//    }
-//    else
-//    {
-//        TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 0);
-//        PWMPulseWidthSet(DRV8323RS_PWMB_BASE,DRV8323RS_PWMB_GPIO_PIN, 200);
-//        flag=true;
-//        delayMS(500);
-//    }
+        //UARTprintf("heyoo");
     }
 
 }
