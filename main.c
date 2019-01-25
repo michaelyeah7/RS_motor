@@ -37,11 +37,15 @@
 /*include for adc*/
 #include "driverlib/adc.h"
 
-int HALLA_data;
-int HALLB_data;
-int HALLC_data;
+char HALLA_data;
+char HALLB_data;
+char HALLC_data;
 uint16_t read_data;
-uint32_t pui32ADC0Value[4];
+unsigned short isense_adc_data[3];
+int counter = 0;
+uint16_t data_dump[5000];
+int global_kill = 0;
+
 
 void delayMS(int ms) {
     SysCtlDelay( (SysCtlClockGet()/(3*1000))*ms ) ;
@@ -266,7 +270,7 @@ void HALLIntHandler(void){
     commutate();
 }
 
-int HallSensorConfig(void){
+void HallSensorConfig(void){
 
     GPIOIntRegister(DRV8323RS_HALLA_PORT, HALLIntHandler);
     GPIOIntRegister(DRV8323RS_HALLB_PORT, HALLIntHandler);
@@ -293,32 +297,113 @@ int HallSensorConfig(void){
     GPIOIntEnable(DRV8323RS_HALLA_PORT, GPIO_PIN_2);
     GPIOIntEnable(DRV8323RS_HALLB_PORT, GPIO_PIN_0);
     GPIOIntEnable(DRV8323RS_HALLC_PORT, GPIO_PIN_4);
+
+    return;
 }
 
 void config_isense(void){
+
     SysCtlPeripheralEnable(DRV8323RS_ISENSE_ADC_PERIPH);
+    while(!SysCtlPeripheralReady(DRV8323RS_ISENSE_ADC_PERIPH)){}
+
+    SysCtlPeripheralEnable(DRV8323RS_ISENSEA_GPIO_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_ISENSEB_GPIO_PERIPH);
+    SysCtlPeripheralEnable(DRV8323RS_ISENSEC_GPIO_PERIPH);
+
     GPIOPinTypeADC(DRV8323RS_ISENSEA_GPIO_PORT, DRV8323RS_ISENSEA_GPIO_PIN);
     GPIOPinTypeADC(DRV8323RS_ISENSEB_GPIO_PORT, DRV8323RS_ISENSEB_GPIO_PIN);
-    GPIOPinTypeADC(DRV8323RS_ISENSEC_GPIO_PORT, DRV8323RS_ISENSEC_GPIO_PIN);
+    GPIOPinTypeADC(DRV8323RS_ISENSEC_GPIO_PORT, DRV8323RS_ISENSEC_GPIO_PIN); //this one
 
     ADCSequenceConfigure(DRV8323RS_ISENSE_ADC_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
     ADCSequenceStepConfigure(ADC0_BASE, 1, 0, DRV8323RS_ISENSEA_ADC_CTL_CH);
-    ADCSequenceStepConfigure(ADC0_BASE, 1, 0, DRV8323RS_ISENSEB_ADC_CTL_CH);
-    ADCSequenceStepConfigure(ADC0_BASE, 1, 0, DRV8323RS_ISENSEC_ADC_CTL_CH | ADC_CTL_IE | ADC_CTL_END ); //or in end conditions
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 1, DRV8323RS_ISENSEB_ADC_CTL_CH);
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 2, DRV8323RS_ISENSEC_ADC_CTL_CH | ADC_CTL_IE | ADC_CTL_END );
     ADCSequenceEnable(ADC0_BASE, 1);
     ADCIntClear(ADC0_BASE, 1);
+
+    return;
 }
 
-uint32_t * adc_read_isense(void){
+void adc_read_isense(void){
     /*figure out which sample gives us 3 seconds of 15000*/
-    ADCProcessorTrigger(ADC0_BASE, 3);
-    while(!ADCIntStatus(ADC0_BASE, 3, false))
+    ADCProcessorTrigger(ADC0_BASE, 1);
+    while(!ADCIntStatus(ADC0_BASE, 1, false))
             {
             }
-    ADCIntClear(ADC0_BASE, 3);
-    ADCSequenceDataGet(ADC0_BASE, 3, pui32ADC0Value);
-    return pui32ADC0Value;
+    ADCIntClear(ADC0_BASE, 1);
+    uint32_t adc_buffer[4];
+    ADCSequenceDataGet(ADC0_BASE, 1, adc_buffer); //figure out how to map data from how it comes into array of shorts
+    isense_adc_data[0] = (unsigned short) adc_buffer[0]; //A
+    isense_adc_data[1] = (unsigned short) adc_buffer[1]; //B
+    isense_adc_data[2] = (unsigned short) adc_buffer[2]; //C
 }
+
+void timerIntHandler(void){
+    //data packing variable
+    uint16_t package;
+
+    //sprintf buff for uartprintf outputs
+    char out_buff[100];
+
+    //get current hall
+    char curr_hall_state;
+    curr_hall_state = HALLA_data << 2 | HALLB_data << 1 | HALLC_data;
+    char curr_active_phase;
+    //understand which isenseA/B/C to read based on hallstate
+    switch (curr_hall_state){
+        case 1:
+            curr_active_phase = 0; //represents A as high
+            break;
+        case 2:
+            curr_active_phase = 2; //represents C as high
+            break;
+        case 3:
+            curr_active_phase = 0; //represents A as high
+        case 4:
+            curr_active_phase = 1; //represents B as high
+            break;
+        case 5:
+            curr_active_phase = 1; //represents B as high
+            break;
+        case 6:
+            curr_active_phase = 2; //represents C as high
+            break;
+    }
+
+    //read new data into global short isense_adc_data[3]
+    adc_read_isense();
+    package = isense_adc_data[curr_active_phase];
+    package = curr_hall_state << 12;
+
+    //put data into 5000 var array
+    //data_dump[counter] = package;
+    sprintf(out_buff, "%u", package);
+    UARTprintf(out_buff);
+    counter++;
+
+    /*
+    //end after 5000 samples
+    if (counter == 5000){
+        global_kill = 1;
+    }
+    */
+    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+}
+
+void timer_interrupt_config(){
+    //5kHz timer
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+    TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC); //16bit periodic timer
+    TimerLoadSet(TIMER0_BASE, TIMER_A, 3200); //figure out how often
+    TimerIntEnable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+    TimerIntRegister(TIMER0_BASE, TIMER_A, timerIntHandler);
+    IntEnable(INT_TIMER0A);
+    TimerEnable(TIMER0_BASE, TIMER_A);
+    TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
+
+    return;
+}
+
 
 int main(void)
 {
@@ -330,21 +415,19 @@ int main(void)
     INLPinConfig();
     InitConsole();
     config_isense();
+    timer_interrupt_config();
 
-    uint32_t * buffer;
-    char out_buff[100];
     //bool flag=false;
-    UARTprintf("hey");
-    while(1){
-        //delayMS(100);
-        buffer = adc_read_isense();
-        UARTprintf("Read data:\n");
-        sprintf(out_buff, "ISENSE A: %u\n", buffer[0]);
-        UARTprintf(out_buff);
-        sprintf(out_buff, "ISENSE B: %u\n", buffer[1]);
-        UARTprintf(out_buff);
-        sprintf(out_buff, "ISENSE C: %u\n", buffer[2]);
-        UARTprintf(out_buff);
-    }
+    //UARTprintf("hey");
+    while(!global_kill){
 
+    }
+    exit();
+    char out_buff[100];
+    int ii;
+    /*
+    for (ii = 0; ii < 5000; ++ii){
+        sprintf(out_buff, "#%d has a value of %u\n", ii, data_dump[ii]);
+        UARTprintf(out_buff);
+    }*/
 }
