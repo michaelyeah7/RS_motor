@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "inc/hw_gpio.h"
 #include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
@@ -40,6 +41,7 @@ int HALLA_data;
 int HALLB_data;
 int HALLC_data;
 uint16_t read_data;
+uint32_t pui32ADC0Value[4];
 
 void delayMS(int ms) {
     SysCtlDelay( (SysCtlClockGet()/(3*1000))*ms ) ;
@@ -180,15 +182,6 @@ int INLPinConfig(void){
     GPIOPinTypeGPIOOutput(DRV8323RS_INLC_PORT,DRV8323RS_INLC_PIN);
 
 }
-//void pwma(int dutycircle){
-//    PWMPulseWidthSet(DRV8323RS_PWMA_BASE,DRV8323RS_PWMA_OUT, dutycircle);
-//    PWMGenEnable(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_GEN);
-//    PWMOutputState(DRV8323RS_PWMA_BASE, DRV8323RS_PWMA_OUT_BIT, true);
-//}
-//void pwmb(int dutycircle){
-//    TimerMatchSet(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER, 200); // PWM
-//    TimerEnable(DRV8323RS_PWMB_BASE, DRV8323RS_PWMB_TIMER);
-//}
 
 void commutate(){
     if((HALLA_data>0) && (HALLB_data==0) && (HALLC_data==0)){
@@ -308,21 +301,23 @@ void config_isense(void){
     GPIOPinTypeADC(DRV8323RS_ISENSEB_GPIO_PORT, DRV8323RS_ISENSEB_GPIO_PIN);
     GPIOPinTypeADC(DRV8323RS_ISENSEC_GPIO_PORT, DRV8323RS_ISENSEC_GPIO_PIN);
 
-    ADCSequenceConfigure(DRV8323RS_ISENSE_ADC_BASE, 3, ADC_TRIGGER_PROCESSOR, 0);
-    ADCSequenceStepConfigure(ADC0_BASE, 3, 0, DRV8323RS_ISENSEA_ADC_CTL_CH | DRV8323RS_ISENSEB_ADC_CTL_CH  | DRV8323RS_ISENSEC_ADC_CTL_CH );
-    ADCSequenceEnable(ADC0_BASE, 3);
-    ADCIntClear(ADC0_BASE, 3);
+    ADCSequenceConfigure(DRV8323RS_ISENSE_ADC_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 0, DRV8323RS_ISENSEA_ADC_CTL_CH);
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 0, DRV8323RS_ISENSEB_ADC_CTL_CH);
+    ADCSequenceStepConfigure(ADC0_BASE, 1, 0, DRV8323RS_ISENSEC_ADC_CTL_CH | ADC_CTL_IE | ADC_CTL_END ); //or in end conditions
+    ADCSequenceEnable(ADC0_BASE, 1);
+    ADCIntClear(ADC0_BASE, 1);
 }
 
-void adc_read_isense(void){
+uint32_t * adc_read_isense(void){
     /*figure out which sample gives us 3 seconds of 15000*/
-    uint32_t pui32ADC0Value[1];
     ADCProcessorTrigger(ADC0_BASE, 3);
     while(!ADCIntStatus(ADC0_BASE, 3, false))
             {
             }
     ADCIntClear(ADC0_BASE, 3);
     ADCSequenceDataGet(ADC0_BASE, 3, pui32ADC0Value);
+    return pui32ADC0Value;
 }
 
 int main(void)
@@ -334,10 +329,22 @@ int main(void)
     HallSensorConfig();
     INLPinConfig();
     InitConsole();
+    config_isense();
 
-    bool flag=false;
+    uint32_t * buffer;
+    char out_buff[100];
+    //bool flag=false;
+    UARTprintf("hey");
     while(1){
-        //UARTprintf("heyoo");
+        //delayMS(100);
+        buffer = adc_read_isense();
+        UARTprintf("Read data:\n");
+        sprintf(out_buff, "ISENSE A: %u\n", buffer[0]);
+        UARTprintf(out_buff);
+        sprintf(out_buff, "ISENSE B: %u\n", buffer[1]);
+        UARTprintf(out_buff);
+        sprintf(out_buff, "ISENSE C: %u\n", buffer[2]);
+        UARTprintf(out_buff);
     }
 
 }
