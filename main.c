@@ -37,14 +37,14 @@
 /*include for adc*/
 #include "driverlib/adc.h"
 
-char HALLA_data;
-char HALLB_data;
-char HALLC_data;
-uint16_t read_data;
-unsigned short isense_adc_data[3];
-int counter = 0;
-uint16_t data_dump[5000];
-int global_kill = 0;
+volatile char HALLA_data;
+volatile char HALLB_data;
+volatile char HALLC_data;
+volatile uint16_t read_data;
+volatile unsigned short isense_adc_data[3];
+volatile int counter = 0;
+volatile uint16_t data_dump[5000];
+volatile int global_kill = 0;
 
 
 void delayMS(int ms) {
@@ -346,7 +346,7 @@ void timerIntHandler(void){
     char out_buff[100];
 
     //get current hall
-    char curr_hall_state;
+    unsigned short curr_hall_state;
     curr_hall_state = HALLA_data << 2 | HALLB_data << 1 | HALLC_data;
     char curr_active_phase;
     //understand which isenseA/B/C to read based on hallstate
@@ -373,20 +373,21 @@ void timerIntHandler(void){
     //read new data into global short isense_adc_data[3]
     adc_read_isense();
     package = isense_adc_data[curr_active_phase];
-    package = curr_hall_state << 12;
+    package = ((unsigned short) curr_hall_state << 12) | package;
 
     //put data into 5000 var array
-    //data_dump[counter] = package;
-    sprintf(out_buff, "%u", package);
+    //data_dump[counter] = package; //THIS LINE
+
+    sprintf(out_buff, "HS %u \t ISEN %u\n", curr_hall_state , (package & 0x0FFF)); //alternate way of getting hallstate (less cheaty)
     UARTprintf(out_buff);
     counter++;
 
-    /*
+
     //end after 5000 samples
     if (counter == 5000){
         global_kill = 1;
     }
-    */
+
     TimerIntClear(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
 }
 
@@ -422,9 +423,8 @@ int main(void)
     while(!global_kill){
 
     }
-    exit();
-    char out_buff[100];
-    int ii;
+    IntMasterDisable();
+    while(1){}
     /*
     for (ii = 0; ii < 5000; ++ii){
         sprintf(out_buff, "#%d has a value of %u\n", ii, data_dump[ii]);
