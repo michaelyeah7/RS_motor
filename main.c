@@ -350,35 +350,42 @@ void timerIntHandler(void){
     curr_hall_state = HALLA_data << 2 | HALLB_data << 1 | HALLC_data;
     char curr_active_phase;
     //understand which isenseA/B/C to read based on hallstate
+
     switch (curr_hall_state){
         case 1:
             curr_active_phase = 0; //represents A as high
+            adc_read_isense();
             break;
         case 2:
             curr_active_phase = 2; //represents C as high
+            adc_read_isense();
             break;
         case 3:
             curr_active_phase = 0; //represents A as high
+            adc_read_isense();
         case 4:
             curr_active_phase = 1; //represents B as high
+            adc_read_isense();
             break;
         case 5:
             curr_active_phase = 1; //represents B as high
+            adc_read_isense();
             break;
         case 6:
             curr_active_phase = 2; //represents C as high
+            adc_read_isense();
             break;
     }
 
     //read new data into global short isense_adc_data[3]
-    adc_read_isense();
+
     package = isense_adc_data[curr_active_phase];
     package = ((unsigned short) curr_hall_state << 12) | package;
 
     //put data into 5000 var array
     //data_dump[counter] = package; //THIS LINE
 
-    sprintf(out_buff, "HS %u \t ISEN %u\n", curr_hall_state , (package & 0x0FFF)); //alternate way of getting hallstate (less cheaty)
+    sprintf(out_buff, "HS %u \t ISEN %u\n", curr_hall_state , isense_adc_data[curr_active_phase]); //alternate way of getting hallstate and sen data is masking package w (0x7000) and (0x0FFF) respectively (less cheaty)
     UARTprintf(out_buff);
     counter++;
 
